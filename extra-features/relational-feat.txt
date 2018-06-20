@@ -1,0 +1,10 @@
+Relation, Comment
+Logon(u, after-hours), "if a user logon his/her PC after hours (after 8pm and before 6am)" -- Bernoulli(p)
+Logon(u1, u2), "user u1 logon other user u2's machine" -- Bernoulli(p)
+File(u, other-pc), "user access files on other-pc owned by another user" -- Bernoulli(p)
+File(u, from_removable_media), "user access removable_media" -- Poisson(\lambda)
+File(u, to_removable_media), "user access removable_media" -- Poisson(\lambda)
+File(u, decoy_file), "user access decoy file" -- Bernoulli(p)
+Http(u, jobhunting-sites), "user access sensitive websites such as job hunting" -- Poisson(\lambda)
+Http(u, cloudstorage-sites), "user upload documents to sensitive websites such as Dropbox.com" -- Poisson(\lambda)
+Email(u, send/recv, all-non-org), "user has emails communication outside of organization" -- Poisson(\lambda)
