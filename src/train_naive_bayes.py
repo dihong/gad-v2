@@ -45,11 +45,20 @@ def train_naive_bayes(train_ratio, nb_models, rdd_user_days):
             p = sum([1 for val in data if val > 0]) / float(len(data))
         elif m == 'P':  # Poisson
             xy = Counter(data).items()
-            total_cnt = float(len(data))
             xy = sorted(xy)
-            x = [int(x) for x, y in xy]
-            y = [y/total_cnt for x, y in xy]
-            p = curve_fit(poisson, x, y)[0]
+            th = -1
+            x_values = [int(x) for x, y in xy if x>th]
+            y_values = [y for x, y in xy if x>th]
+            total_cnt = float(sum(y_values))
+            y_values = [y/total_cnt for y in y_values]
+            if len(x_values) > 1:
+                try:
+                    p = curve_fit(poisson, x_values, y_values, maxfev=1000)[0]
+                except:
+                    warning("%s, %s" % (x_values, y_values))
+                    raise
+            else:
+                p = 1e-3
             # warning("Poisson(%d): %s, %s" % (k, x[:5], y[:5]))
         else:
             # undefined model

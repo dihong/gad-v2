@@ -4,6 +4,7 @@ import cPickle
 from config import config
 from batch import DayBatcher
 import numpy as np
+import operator
 
 
 def partition_by_user(infile_by_days, outfile_by_users):
@@ -51,6 +52,32 @@ def partition_by_user_into_matrices(infile_by_days):
             ret[user][day_to_index[day]] = features
         return ret
 
+def create_compact_features():
+    with open(config.data.relational_feat, 'r') as fp:
+        data_by_user = cPickle.load(fp)
+    out = ["user day redteam logon_other_pc logon_after_hours access_file_other_pc to_removable from_removable decoy_file http_jobhunting http_cloudstorage recv_nonorg send_nonorg"]
+    tmp = []
+    userid = 1
+    userdict = {}
+    for user, val in data_by_user.iteritems():
+        if user not in userdict:
+            userdict[user] = userid
+            userid += 1
+        user_key = userdict[user]
+        for day, feat in enumerate(val):
+            tmp.append([user_key, day] + list(feat))
+    tmp = sorted(tmp, key=operator.itemgetter(1), reverse=False)
+    for val in tmp:
+        user = val[0]
+        day = val[1]+1
+        red = val[-1]
+        feat = val[2:-1]
+        meta = '%d %d %d ' % (user, day, max(0,red))
+        out.append(meta+' '.join(['%d'%max(v,0) for v in feat]))
+    out = '\n'.join(out)
+    with open('../r6.2/count/features/compact10d.txt', 'w+') as fp:
+        fp.write(out)
+
 
 if __name__=="__main__":
 
@@ -69,6 +96,9 @@ if __name__=="__main__":
     partition_by_user(infile_by_days, outfile_by_users)
     """
     # all_fixed.txt
+    """
     data = partition_by_user_into_matrices('../r6.2/count/all_fixed.txt')
     with open('../r6.2/count/data_by_users_all.pkl', 'w+') as fp:
         cPickle.dump(data, fp, protocol=2)
+    """
+    create_compact_features()

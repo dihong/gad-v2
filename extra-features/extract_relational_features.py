@@ -431,6 +431,7 @@ cnt_cloudstorage(%.6f), num_days(%.2f)."
                  ('file', user_file, [2,3,4,5]),
                  ('http', user_http, [6,7]),
                  ('email', user_email, [8,9])]
+
     red_flag_index = 10
     all_day_keys = set()
     for name, data, index in all_feats:

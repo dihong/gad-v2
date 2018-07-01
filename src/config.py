@@ -31,6 +31,15 @@ config.iso_forest = edict()
 config.iso_forest.n_estimators = numpy.linspace(10, 300, num=5).astype(numpy.int)
 config.iso_forest.contamination = numpy.linspace(0, 1.0, num=5)
 config.iso_forest.bootstrap = [False]
+config.dnn = edict()
+config.dnn.lr = 0.005
+config.dnn.num_layers = numpy.linspace(1,7,3).astype(numpy.int)
+config.dnn.hidden_size = numpy.linspace(10, 100, 3).astype(numpy.int)
+config.dnn.activation = 'tanh' # tanh or relu
+config.dnn.dist = 'diag' # ident, diag, full for covariance matrix of mvn
+config.dnn.batch_size = 128
+config.dnn.normalizer = 'none' # none, layer, or batch
+config.dnn.debug=False
 
 # naive bayes.
 config.nb = edict()
@@ -44,7 +53,6 @@ config.data.test_file = '../r6.2/count/test_by_days.txt'
 config.data.train_by_user_file = '../r6.2/count/train_by_users.pkl'
 config.data.test_by_user_file = '../r6.2/count/test_by_users.pkl'
 config.data.relational_feat = '../extra-features/feat.pkl'
-# config.data.relational_feat = '../r6.2/count/data_by_users_all.pkl'
 config.data.train_ratio = 0.85 # ratio of data used for training.
 
 # checks

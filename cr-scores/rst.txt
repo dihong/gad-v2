@@ -1,0 +1,6 @@
+ISO-Forest (by users):
+  CR-400: 10.0833
+  CR-1000: 26.0833
+
+ISO-Forest (by days):
+Best iso_forest parameters: {400: {'n_estimators': 82, 'cr': 8.666666666666664, 'bootstrap': False, 'contamination': 0.75}, 1000: {'n_estimators': 82, 'cr': 30.41666666666668, 'bootstrap': False, 'contamination': 1.0}}

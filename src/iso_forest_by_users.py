@@ -59,13 +59,13 @@ def poisson(k, lamb):
     return (lamb**k / factorial(k)) * np.exp(-lamb)
 
 
-def test_naive_bayes(train_ratio, rdd_user_days):
+def run_iso_forest(train_ratio, rdd_user_days):
     # train_ratio: (0,1)
     # rdd_user_days: (user, n-by-(d+1)) for all data
     max_samples = 'auto'
     max_features = 1.0
-    n_estimators = 300
-    contamination = 0.25
+    n_estimators = 50
+    contamination = 1
     bootstrap = False
     model = IsolationForest(n_estimators=n_estimators, max_samples=max_samples,
                             contamination=contamination, max_features=max_features,
@@ -80,24 +80,11 @@ def test_naive_bayes(train_ratio, rdd_user_days):
     anomaly_scores = model.decision_function(data)
     anomaly_scores = anomaly_scores[ntrain:]
     reds = reds[ntrain:]
-    tmp = []
-    k = 1
-    for red, score in zip(reds, anomaly_scores):
-        tmp.append((-score, k, red))
-        k += 1
-    tmp = sorted(tmp)
-    rank = 1
-    ret = []
-    for score, k, red in tmp:
-        ret.append((k, rank, red))
-        rank += 1
-    """
     ret = []
     day = 1
     for red, score in zip(reds, anomaly_scores):
         ret.append((day, -score, red))
         day += 1
-    """
     return ret
 
 
@@ -114,16 +101,10 @@ if __name__ == "__main__":
         data_by_user = cPickle.load(fp).items()
     print ("Load data of %d users, each user has %d days." %
            (len(data_by_user), len(data_by_user[0][1])))
-    """
-    for k in range(4000):
-        c = Counter(data_by_user[k][1][:, -1])
-        if len(c) > 1:
-            print(data_by_user[k][0], c)
-    """
 
     # run parallel jobs: [day, score, red_flag]
     rdd_data = sc.parallelize(data_by_user, len(data_by_user))
-    rst = rdd_data.map(partial(test_naive_bayes,
+    rst = rdd_data.map(partial(run_iso_forest,
                                config.data.train_ratio)).reduce(lambda x, y: x + y)
     print ("Calculated anomaly sores of %d user-days." % len(rst))
 
