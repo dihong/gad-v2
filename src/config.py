@@ -32,7 +32,7 @@ config.bn.observed_neighbor.ratio = [(0, 0.01), (0.01, 0.04), (0.04, 0.1),
 config.bn.observed_neighbor.ratio = ranges
 config.bn.observed_neighbor.count = [(1, 1), (2, 4), (5, numpy.inf)]
 config.bn.observed_neighbor.timespan = 7  # in days.
-config.bn.observed_neighbor.num_periods = 2
+config.bn.observed_neighbor.num_periods = 1
 config.bn.rect = edict()  # retification of bias data.
 config.bn.rect.train_days = [50, numpy.inf]
 

@@ -17,6 +17,7 @@ import operator
 def create_train_data(train_feat):
     # train_feat: [user, day, red, target, s1, c1, s2, c2, l1, l2]
     train_feat = np.array(train_feat, dtype=np.int)
+    return train_feat
     # select all data points with red = 1.
     train_reds = train_feat[train_feat[:, 2] > 0]
     train_feat = train_feat[train_feat[:, 2] == 0]
@@ -25,8 +26,9 @@ def create_train_data(train_feat):
         np.any(train_feat[:, -config.bn.observed_neighbor.num_periods:], axis=1)]
     train_feat = train_feat[
         np.all(train_feat[:, -config.bn.observed_neighbor.num_periods:] == 0, axis=1)]
+    random.shuffle(train_neg_latent)
     # randomly select the negative samples of same size with neg_latent.
-    num_neg_other = len(train_neg_latent)
+    num_neg_other = -1
     random.shuffle(train_feat)
     train_neg_other = train_feat[:num_neg_other]
     # merge all training data.
@@ -41,6 +43,10 @@ def bn_prediction(header, test_feat):
     pdata.drop('R', axis=1, inplace=True)
     for k in range(config.bn.observed_neighbor.num_periods):
         pdata.drop('L%d'%k, axis=1, inplace=True)
+    """
+    for k in range(config.bn.observed_neighbor.num_periods):
+        pdata.drop('C%d'%k, axis=1, inplace=True)
+    """
     probs = model.predict_probability(pdata)
     R1 = probs[['R_1']] # probability of anonymous
     return R1.values
@@ -67,6 +73,10 @@ if __name__ == "__main__":
     for k in range(config.bn.observed_neighbor.num_periods):
         header.append('L%d'%k)
     pdata = pd.DataFrame(data={k:v for k,v in zip(header, traindata[:,2:].T)})
+    """
+    for k in range(config.bn.observed_neighbor.num_periods):
+        pdata.drop('C%d'%k, axis=1, inplace=True)
+    """
     edges = [('T','R')]
     for k in range(config.bn.observed_neighbor.num_periods):
         edges.append(('L%d'%k, 'R'))
@@ -83,7 +93,6 @@ if __name__ == "__main__":
         test_feat[test_feat[:,k]>mx, k] = mx
     print("Load test data with shape %dx%d" % test_feat.shape)
     # parallelize data.
-    # test_feat = test_feat[:100,:]
     rdd_test_feat = sc.parallelize(np.split(test_feat, 50))
     probs = rdd_test_feat.flatMap(partial(bn_prediction, header)).collect()
     # calculate the cr.
