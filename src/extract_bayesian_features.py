@@ -261,15 +261,15 @@ if __name__ == "__main__":
                      '../cache/rect.png', params)
     print('Saved ../cache/rect.png')
     # group data by user and parallelize.
-    train_rst_by_users = group_by_user(all_train_rst)
+    train_rst_by_users = group_by_user(train_rst)
     test_rst_by_users = group_by_user(test_rst)
     rdd_train_rst_by_users = sc.parallelize(train_rst_by_users)
     rdd_test_rst_by_users = sc.parallelize(test_rst_by_users)
     # create feature.
     target_ticks = calculate_ticks(
-        all_train_rst, config.bn.observed_target.ratio)
+        train_rst, config.bn.observed_target.ratio)
     neighbor_ticks = calculate_ticks(
-        all_train_rst, config.bn.observed_neighbor.ratio)
+        train_rst, config.bn.observed_neighbor.ratio)
     # [[user, day, red, target, s1, c1, s2, c2, l1, l2],]
     train_ret = rdd_train_rst_by_users.flatMap(partial(
         extract_user_feat, target_ticks, neighbor_ticks)).collect()
@@ -303,7 +303,6 @@ if __name__ == "__main__":
         print("CR-%d (minstate2): %.4f" % (b, cr_score_minstate2))
         print("CR-%d (latent): %.4f" % (b, cr_score_latent))
     # save features
-    """
     out_train_file = rst_train_file.split('/')[-1]+'_bn_feat.pkl'
     out_train_file = os.path.join('../cache', out_train_file)
     with open(out_train_file, 'wb+') as fp:
@@ -313,7 +312,6 @@ if __name__ == "__main__":
     with open(out_test_file, 'wb+') as fp:
         cPickle.dump(test_ret, fp, protocol=2)
     print('Done. Saved to ../cache/*._bn_feat.pkl')
-    """
 
 
 
