@@ -18,23 +18,20 @@ config.hmm = edict()
 config.hmm.nfeats = 3  # 1 for [loss], 3 for [loss, mov_mean, mean]
 
 # bayesian network (bn)
-ranges = [(0, 0.01), (0.01, 0.05), (0.05, 0.1), (0.1, 0.5), (0.5, 1.0)]
+ratio_intervals = [(0, 0.01), (0.01, 0.05), (0.05, 0.1), (0.1, 0.5), (0.5, 1.0)]
 config.bn = edict()
 config.bn.observed_target = edict()
-config.bn.observed_target.ratio = [(0, 0.01), (0.01, 0.04), (0.04, 0.1),
-                                   (0.1, 0.3), (0.3, 0.6), (0.6, 1.0)]
-config.bn.observed_target.ratio = ranges
+config.bn.observed_target.ratio = ratio_intervals
 config.bn.latent = edict()
 config.bn.latent.count = [(0, 0), (1, numpy.inf)]  # how many ground-truth reds
 config.bn.observed_neighbor = edict()
-config.bn.observed_neighbor.ratio = [(0, 0.01), (0.01, 0.04), (0.04, 0.1),
-                                     (0.1, 0.3), (0.3, 0.6), (0.6, 1.0)]
-config.bn.observed_neighbor.ratio = ranges
+config.bn.observed_neighbor.ratio = ratio_intervals
 config.bn.observed_neighbor.count = [(1, 1), (2, 4), (5, numpy.inf)]
-config.bn.observed_neighbor.timespan = 7  # in days.
+config.bn.observed_neighbor.timespan = 7 # in days.
 config.bn.observed_neighbor.num_periods = 1
 config.bn.rect = edict()  # retification of bias data.
 config.bn.rect.train_days = [50, numpy.inf]
+config.bn.use_overlapping_periods = False
 
 # state
 config.state = edict()

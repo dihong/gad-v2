@@ -15,9 +15,9 @@ import operator
 
 
 def create_train_data(train_feat):
+    # Deprecated!!
     # train_feat: [user, day, red, target, s1, c1, s2, c2, l1, l2]
     train_feat = np.array(train_feat, dtype=np.int)
-    return train_feat
     # select all data points with red = 1.
     train_reds = train_feat[train_feat[:, 2] > 0]
     train_feat = train_feat[train_feat[:, 2] == 0]
@@ -43,10 +43,6 @@ def bn_prediction(header, test_feat):
     pdata.drop('R', axis=1, inplace=True)
     for k in range(config.bn.observed_neighbor.num_periods):
         pdata.drop('L%d'%k, axis=1, inplace=True)
-    """
-    for k in range(config.bn.observed_neighbor.num_periods):
-        pdata.drop('C%d'%k, axis=1, inplace=True)
-    """
     probs = model.predict_probability(pdata)
     R1 = probs[['R_1']] # probability of anonymous
     return R1.values
@@ -63,8 +59,7 @@ if __name__ == "__main__":
     # load train data
     train_file = os.path.join('../cache/dnn_nl-5_hs-10_train_bn_feat.pkl')
     with open(train_file, 'rb') as fp:
-        train_feat = cPickle.load(fp)
-    traindata = create_train_data(train_feat)
+        train_feat = np.array(cPickle.load(fp), dtype=np.int)
     # train bn model
     header = ['R', 'T']
     for k in range(config.bn.observed_neighbor.num_periods):
@@ -72,11 +67,7 @@ if __name__ == "__main__":
         header.append('C%d'%k)
     for k in range(config.bn.observed_neighbor.num_periods):
         header.append('L%d'%k)
-    pdata = pd.DataFrame(data={k:v for k,v in zip(header, traindata[:,2:].T)})
-    """
-    for k in range(config.bn.observed_neighbor.num_periods):
-        pdata.drop('C%d'%k, axis=1, inplace=True)
-    """
+    pdata = pd.DataFrame(data={k:v for k,v in zip(header, train_feat[:,2:].T)})
     edges = [('T','R')]
     for k in range(config.bn.observed_neighbor.num_periods):
         edges.append(('L%d'%k, 'R'))
@@ -88,8 +79,8 @@ if __name__ == "__main__":
     test_file = os.path.join('../cache/dnn_nl-5_hs-10_test_bn_feat.pkl')
     with open(test_file, 'rb') as fp:
         test_feat = np.array(cPickle.load(fp), dtype=np.int)
-    for k in range(2, traindata.shape[1]):
-        mx = max(traindata[:,k])
+    for k in range(2, train_feat.shape[1]):
+        mx = max(train_feat[:,k])
         test_feat[test_feat[:,k]>mx, k] = mx
     print("Load test data with shape %dx%d" % test_feat.shape)
     # parallelize data.

@@ -165,6 +165,19 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
                 elif min_state == userday_neighbor[period_id][update_index][0]:
                     # both sides have the same min_state, add the count!
                     userday_neighbor[period_id][update_index][1] += min_state_count
+    if config.bn.use_overlapping_periods:
+        # use overlapping periods.
+        for period_id in range(1, num_periods):
+            for dayid in range(ndays):
+                prev_min_state, prev_cnt = userday_neighbor[period_id-1][dayid]
+                cur_min_state, cur_cnt = userday_neighbor[period_id][dayid]
+                if prev_min_state==cur_min_state:
+                    userday_neighbor[period_id][dayid][1] = prev_cnt + cur_cnt
+                elif prev_min_state<cur_min_state:
+                    userday_neighbor[period_id][dayid] = [prev_min_state, prev_cnt]
+                prev_numreds = userday_numreds[period_id-1][dayid]
+                userday_numreds[period_id][dayid] += prev_numreds
+
     # calculate the hidden_state for all userdays.
     userday_latent = copy.deepcopy(userday_numreds)
     for period_id in range(num_periods):
