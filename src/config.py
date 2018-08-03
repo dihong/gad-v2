@@ -18,7 +18,7 @@ config.hmm = edict()
 config.hmm.nfeats = 3  # 1 for [loss], 3 for [loss, mov_mean, mean]
 
 # bayesian network (bn)
-ratio_intervals = [(0, 0.01), (0.01, 0.05), (0.05, 0.1), (0.1, 0.5), (0.5, 1.0)]
+ratio_intervals = [(0, 0.01), (0.01, 0.02), (0.02, 0.05), (0.05, 0.1), (0.1, 0.3), (0.3, 1.0)]
 config.bn = edict()
 config.bn.observed_target = edict()
 config.bn.observed_target.ratio = ratio_intervals
