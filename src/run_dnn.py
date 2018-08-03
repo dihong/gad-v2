@@ -60,6 +60,9 @@ def temporal_knn(rst, w, alpha):
             ret.append((day, score, red))
     return ret
 
+def get_anonymous_score_filename(nl, hs):
+    return "dnn_nl-%d_hs-%d" % (nl, hs)
+
 
 def run_dnn(data_file, data_spec_file, nl, hs):
     """Run DNN model on data file given parameters."""
@@ -130,6 +133,18 @@ def run_dnn(data_file, data_spec_file, nl, hs):
         continue_training = not_early_stop(raw_batch, current_loss)
         if continue_training < 0:
             break
+    # save the (user, day, score, red).
+    from util import split_train_test
+    train_rst, test_rst = split_train_test(rst)
+    fn = os.path.join("../results/dnn/train", get_anonymous_score_filename(nl, hs))
+    with open(fn+'_train', 'w+') as fp:
+        fp.write('\n'.join(['%d\t%d\t%.6f\t%d' % (user, day, score, red)
+                            for user, day, score, red in train_rst]))
+    fn = os.path.join("../results/dnn/test", get_anonymous_score_filename(nl, hs))
+    with open(fn+'_test', 'w+') as fp:
+        fp.write('\n'.join(['%d\t%d\t%.6f\t%d' % (user, day, score, red)
+                            for user, day, score, red in test_rst]))
+
     # use daily (mean,std) normalized as score.
     rst_daystdnorm = []
     day_rst = {}
@@ -205,8 +220,9 @@ if __name__ == "__main__":
     # run_dnn(data_file, data_spec, nl=7, hs=10)
     run_dnn(data_file, data_spec, nl=5, hs=10)
     print("Elapsed time is %.2f seconds." % (time.time()-t_start))
-    assert False
+    """ Parameter Exploration
     for hs in config.dnn.hidden_size:
         for nl in config.dnn.num_layers:
             run_dnn(data_file, data_spec, nl, hs)
+    """
 

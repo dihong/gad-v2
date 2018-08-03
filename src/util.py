@@ -32,3 +32,15 @@ def cumulative_recall(rst, budget, increment):
         if (index % increment) == increment - 1:
             cumulative_recall_score += current_red / total_red
     return cumulative_recall_score
+
+
+def split_train_test(rst):
+    from config import config
+    import operator
+    # rst: [(user, day, score, red)]
+    rst_sorted = sorted(rst, key=operator.itemgetter(1), reverse=False)
+    ntrain = int(len(rst)*config.data.train_ratio)
+    last_train_day = rst_sorted[ntrain][1]
+    train_rst = [r for r in rst if r[1]<=last_train_day]
+    test_rst = [r for r in rst if r[1]>last_train_day]
+    return train_rst, test_rst
