@@ -47,7 +47,6 @@ def bn_prediction(header, test_feat):
     R1 = probs[['R_1']] # probability of anonymous
     return R1.values
 
-
 if __name__ == "__main__":
     # setup spark.
     conf = (SparkConf()

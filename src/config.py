@@ -31,6 +31,8 @@ config.bn.observed_neighbor.timespan = 7 # in days.
 config.bn.observed_neighbor.num_periods = 1
 config.bn.rect = edict()  # retification of bias data.
 config.bn.rect.train_days = [50, numpy.inf]
+config.bn.available_features = ['dnn', 'iso-forest', 'svm', 'pca', 'random']
+config.bn.enabled_features = ['dnn']
 config.bn.use_overlapping_periods = False
 
 # state
@@ -49,7 +51,7 @@ config.iso_forest.n_estimators = numpy.linspace(
 config.iso_forest.contamination = numpy.linspace(0, 1.0, num=5)
 config.iso_forest.bootstrap = [False]
 config.dnn = edict()
-config.dnn.lr = 0.005
+config.dnn.lr = 0.01
 config.dnn.num_layers = numpy.linspace(1, 7, 3).astype(numpy.int)
 config.dnn.hidden_size = numpy.linspace(10, 100, 3).astype(numpy.int)
 config.dnn.activation = 'tanh'  # tanh or relu
@@ -65,11 +67,11 @@ config.nb.prefix = 'nb'
 
 # data
 config.data = edict()
-config.data.train_file = '../r6.2/count/train_by_days.txt'
-config.data.test_file = '../r6.2/count/test_by_days.txt'
-config.data.train_by_user_file = '../r6.2/count/train_by_users.pkl'
-config.data.test_by_user_file = '../r6.2/count/test_by_users.pkl'
-config.data.relational_feat = '../extra-features/feat.pkl'
+config.data.train_file = '../r6.2/count/train_by_days.txt' # = all_fixed.txt
+config.data.test_file = '../r6.2/count/test_by_days.txt' # = all_fixed.txt
+config.data.all_fixed_txt = '../r6.2/count/features/all_fixed.txt'
+config.data.all_fixed_json = '../r6.2/count/features/all_fixed.json'
+config.data.compact_feat = '../r6.2/count/features/compact10d.txt' # compact.
 config.data.train_ratio = 0.85  # ratio of data used for training.
 
 # checks

@@ -30,7 +30,7 @@ def cumulative_recall(rst, budget, increment):
             if pair[1] > 0.0:
                 current_red += 1
         if (index % increment) == increment - 1:
-            cumulative_recall_score += current_red / total_red
+            cumulative_recall_score += current_red / (0.0001+total_red)
     return cumulative_recall_score
 
 

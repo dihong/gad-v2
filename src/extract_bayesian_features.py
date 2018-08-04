@@ -233,7 +233,7 @@ if __name__ == "__main__":
             .setMaster(config.SPARK_MASTER)
             .set("spark.app.name", __file__)
             .set("spark.executor.memory", "50g")
-            .set("spark.driver.maxResultSize", "100g"))
+            .set("spark.ui.showConsoleProgress", "true"))
     sc = SparkContext(conf=conf)
     # load rst
     rst_train_file = "../results/dnn/train/dnn_nl-5_hs-10_train"
