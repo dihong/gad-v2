@@ -51,13 +51,13 @@ def eval_cr(rst, name=""):
         cr_score = cumulative_recall(rst, b, config.cr.increment)
         print("CR(%s)-%d: %.4f" % (name, b, cr_score))
 
-def load_all_fixed_features_txt(datafile):
+def load_features_txt(datafile):
     with open(datafile) as fp:
         lines = fp.read().strip().split('\n')[1:]
         ret = np.array([l.split(' ') for l in lines])
         return ret.astype(np.float)
 
-def load_all_fixed_features_bin(datafile):
+def load_features_bin(datafile):
     datafile = datafile[:-4] + '.npy'
     return np.load(datafile)
 
@@ -74,10 +74,18 @@ def rdd_svm(nu, kernel, gamma, shrink, rs, mat):
     model = svm.OneClassSVM(
         nu=nu, kernel=kernel, gamma=gamma, shrinking=shrink, random_state=rs)
     mat = np.array(mat)
-    datadict = {'features': mat[:, 14:],
-                'red': mat[:, 13],
-                'user': mat[:, 1],
-                'day': mat[:, 0]}
+    if mat.shape[1] == 13:
+        # use compact10d
+        datadict = {'features': mat[:, 3:],
+                    'red': mat[:, 2],
+                    'user': mat[:, 1],
+                    'day': mat[:, 0]}
+    else:
+        # use all_fixed
+        datadict = {'features': mat[:, 14:],
+                    'red': mat[:, 13],
+                    'user': mat[:, 1],
+                    'day': mat[:, 0]}
     model.fit(datadict['features'])
     anomaly_scores = model.decision_function(datadict['features'])
     rst = []
@@ -91,7 +99,12 @@ def rdd_svm(nu, kernel, gamma, shrink, rs, mat):
 def run_svm(data_file, rs, nu, kernel, gamma, shrink, outfile1, outfile2):
     #
     print('running SVM with nu={}, kernel={}, shrink={}'.format(nu, kernel, shrink))
-    feat = load_all_fixed_features_bin(data_file)
+    try:
+        feat = load_features_bin(data_file)
+    except:
+        feat = load_features_txt(data_file)
+        npyfile = data_file[:-4] + '.npy'
+        np.save(npyfile, feat)
     feat = group_by_day(feat)
     rdd_feat = sc.parallelize(feat, len(feat))
     rst=rdd_feat.flatMap(partial(rdd_svm, nu, kernel, gamma, shrink, rs)).collect()
@@ -119,10 +132,18 @@ def run_pca(data_file, rs, n_components, outfile1, outfile2):
     mat = day_batcher.next_batch()
     rst = []
     while mat is not None:
-        datadict = {'features': mat[:, 14:],
-                    'red': mat[:, 13],
-                    'user': mat[:, 1],
-                    'day': mat[:, 0]}
+        if mat.shape[1] == 13:
+            # use compact10d
+            datadict = {'features': mat[:, 3:],
+                        'red': mat[:, 2],
+                        'user': mat[:, 1],
+                        'day': mat[:, 0]}
+        else:
+            # use all_fixed
+            datadict = {'features': mat[:, 14:],
+                        'red': mat[:, 13],
+                        'user': mat[:, 1],
+                        'day': mat[:, 0]}
         batch = scale(datadict['features'])
         pca = PCA(n_components=n_components, random_state=rs)
         pca.fit(batch)
@@ -148,8 +169,18 @@ def rdd_iso_forest(n_estimators, max_samples, contamination, max_features,
                             contamination=contamination, max_features=max_features,
                             bootstrap=bootstrap, n_jobs=1, verbose=0)
     mat = np.array(mat)
-    datadict = {'features': mat[:, 14:], 'red': mat[:, 13],
-                'user': mat[:, 1], 'day': mat[:, 0]}
+    if mat.shape[1] == 13:
+        # use compact10d
+        datadict = {'features': mat[:, 3:],
+                    'red': mat[:, 2],
+                    'user': mat[:, 1],
+                    'day': mat[:, 0]}
+    else:
+        # use all_fixed
+        datadict = {'features': mat[:, 14:],
+                    'red': mat[:, 13],
+                    'user': mat[:, 1],
+                    'day': mat[:, 0]}
     model.fit(datadict['features'])
     anomaly_scores = model.decision_function(datadict['features'])
     rst = []
@@ -166,7 +197,12 @@ def rdd_iso_forest(n_estimators, max_samples, contamination, max_features,
 def run_iso_forest(data_file, rs, n_estimators, max_samples, contamination, max_features, bootstrap, outfile1, outfile2):
     #
     print('running Isolation Forest with n_estimators={}, max_samples={}, contamination={}, max_features={}, bootstrap={}'.format(n_estimators, max_samples, contamination, max_features, bootstrap))
-    feat = load_all_fixed_features_bin(data_file)
+    try:
+        feat = load_features_bin(data_file)
+    except:
+        feat = load_features_txt(data_file)
+        npyfile = data_file[:-4] + '.npy'
+        np.save(npyfile, feat)
     feat = group_by_day(feat)
     rdd_feat = sc.parallelize(feat, len(feat))
     rst=rdd_feat.flatMap(partial(rdd_iso_forest, n_estimators, max_samples,
@@ -183,7 +219,18 @@ def run_random(data_file, rs, outfile1, outfile2):
     random.seed(rs)
     rst = []
     while mat is not None:
-        datadict = {'features': mat[:, 14:], 'red': mat[:, 13], 'user': mat[:, 1], 'day': mat[:, 0]}
+        if mat.shape[1] == 13:
+            # use compact10d
+            datadict = {'features': mat[:, 3:],
+                        'red': mat[:, 2],
+                        'user': mat[:, 1],
+                        'day': mat[:, 0]}
+        else:
+            # use all_fixed
+            datadict = {'features': mat[:, 14:],
+                        'red': mat[:, 13],
+                        'user': mat[:, 1],
+                        'day': mat[:, 0]}
         anomaly_scores = [random.random() for x in datadict['features']]
         for day, user, red, score in zip(datadict['day'], datadict['user'], datadict['red'], anomaly_scores):
             rst.append((user, day, score, red))
@@ -192,7 +239,6 @@ def run_random(data_file, rs, outfile1, outfile2):
     save_rst(train_rst, outfile1)
     save_rst(test_rst, outfile2)
     eval_cr(test_rst, 'random')
-
 
 def run_svm_test(args):
     """Run one parameter combination for SVM model."""
@@ -227,9 +273,9 @@ def run_iso_forest_test(args):
     """Run one parameter combination for Isolation Forest model."""
     test_file, outdir = args
     start = time.time()
-    n_estimators = 150
+    n_estimators = 300
     max_samples = 'auto'
-    contamination = 0.1
+    contamination = 0.02
     max_features = 1.0  # default is 1.0 (use all features)
     bootstrap = False
     outfile_name = 'iso_forest__rs_{}__n_{}__maxsamples_{}__contamination_{}__maxfeatures_{}__bootstrap_{}.txt'.format(
@@ -257,7 +303,7 @@ def run_dnn_test(args):
     data_file, data_spec_file, outdir = args
     """Run DNN model on data file given parameters."""
     nl = 1
-    hs = 50
+    hs = 100
     # io and state
     print('running DNN with nl={}, hs={}'.format(nl, hs))
     start = time.time()
@@ -344,6 +390,8 @@ if __name__ == '__main__':
     outdir = config.io.outdir
     data_file = config.data.all_fixed_txt # merge of train & test days.
     json_file = config.data.all_fixed_json
+    # data_file = config.data.compact_txt # merge of train & test days.
+    # json_file = config.data.compact_json
     run_iso_forest_test((data_file, os.path.join(outdir, 'iso_forest')))
     run_svm_test((data_file, os.path.join(outdir, 'svm')))
     pool = Pool(processes=3)

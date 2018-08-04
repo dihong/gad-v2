@@ -55,7 +55,7 @@ def partition_by_user_into_matrices(infile_by_days):
 def create_compact_features():
     with open(config.data.relational_feat, 'r') as fp:
         data_by_user = cPickle.load(fp)
-    out = ["user day redteam logon_other_pc logon_after_hours access_file_other_pc to_removable from_removable decoy_file http_jobhunting http_cloudstorage recv_nonorg send_nonorg"]
+    out = ["day user redteam logon_other_pc logon_after_hours access_file_other_pc to_removable from_removable decoy_file http_jobhunting http_cloudstorage recv_nonorg send_nonorg"]
     tmp = []
     userid = 1
     userdict = {}
@@ -72,7 +72,7 @@ def create_compact_features():
         day = val[1]+1
         red = val[-1]
         feat = val[2:-1]
-        meta = '%d %d %d ' % (user, day, max(0,red))
+        meta = '%d %d %d ' % (day, user, max(0,red))
         out.append(meta+' '.join(['%d'%max(v,0) for v in feat]))
     out = '\n'.join(out)
     with open('../r6.2/count/features/compact10d.txt', 'w+') as fp:

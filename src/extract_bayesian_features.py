@@ -93,6 +93,8 @@ def calculate_ticks(rst, intervals):
     ticks = []
     for s, t in intervals:
         ticks.append(scores[int(t * len(scores)) - 1])
+    ticks[0] = scores[0]
+    ticks[-1] = scores[-1]
     return ticks
 
 
@@ -105,14 +107,16 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
     target_sid = 0
     neighbor_sid = 0
     target_states = []
-    neighbor_states = []
+    neighbor_states = [] # [(day, observed_state)]
     for d, s in day_scores:
+        target_states.append((d, target_sid))
         if s < target_ticks[target_sid]:
             target_sid += 1
-        target_states.append((d, target_sid))
+            target_sid = min(target_sid, len(target_ticks)-1)
+        neighbor_states.append((d, neighbor_sid))
         if s < neighbor_ticks[neighbor_sid]:
             neighbor_sid += 1
-        neighbor_states.append((d, neighbor_sid))
+            neighbor_sid = min(neighbor_sid, len(neighbor_ticks)-1)
     target_states = sorted(target_states)
     neighbor_states = sorted(neighbor_states)
     # [k] is state of day[k]
@@ -195,13 +199,16 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
     # construct feature [user, day, red, target, s1, c1, s2, c2, l1, l2]
     ret = []
     dayid = 0
+    max_min_state = len(neighbor_ticks)-1
     for u, d, s, r in user_data:
         sc = []
         latent = []
         for k in range(num_periods):
             min_state, min_state_count = userday_neighbor[k][dayid]
-            assert min_state < np.inf
-            assert min_state_count < np.inf
+            if min_state == np.inf:
+                # Missing activities for user[u] in day[d].
+                min_state = max_min_state
+                min_state_count = 1
             # map min_state_count to its state id.
             count_sid = 0
             for start_c, end_c in config.bn.observed_neighbor.count:
@@ -226,6 +233,58 @@ def group_by_user(rst):
         ret[u].append((u, d, s, r))
     return ret.values()
 
+def get_svm_rst_name():
+    rs = config.state.random_seed
+    nu = 0.25
+    kernel = 'sigmoid'
+    gamma = 0.1
+    shrink = False
+    result_dir = os.path.join(config.io.outdir, 'svm')
+    name = 'svm__rs_{}__nu_{:.2f}__kernel_{}__gamma_{:.1f}__shrink_{}.txt'.format(
+        rs, nu, kernel, gamma, shrink)
+    fname1 = os.path.join(result_dir, 'train', name)
+    fname2 = os.path.join(result_dir, 'test', name)
+    return fname1, fname2
+
+def get_random_rst_name():
+    result_dir = os.path.join(config.io.outdir, 'random')
+    rs = config.state.random_seed
+    name = 'random__rs_{}.txt'.format(rs)
+    fname1 = os.path.join(result_dir, 'train', name)
+    fname2 = os.path.join(result_dir, 'test', name)
+    return fname1, fname2
+
+def get_iso_forest_rst_name():
+    result_dir = os.path.join(config.io.outdir, 'iso_forest')
+    rs = config.state.random_seed
+    n_estimators = 150
+    max_samples = 'auto'
+    contamination = 0.1
+    max_features = 1.0  # default is 1.0 (use all features)
+    bootstrap = False
+    name = 'iso_forest__rs_{}__n_{}__maxsamples_{}__contamination_{}__maxfeatures_{}__bootstrap_{}.txt'.format(
+        rs, n_estimators, max_samples, contamination, max_features, bootstrap)
+    fname1 = os.path.join(result_dir, 'train', name)
+    fname2 = os.path.join(result_dir, 'test', name)
+    return fname1, fname2
+
+
+def get_pca_rst_name():
+    result_dir = os.path.join(config.io.outdir, 'pca')
+    rs = config.state.random_seed
+    n_components = 10
+    name = 'pca__rs_{}__n_{}.txt'.format(rs, n_components)
+    fname1 = os.path.join(result_dir, 'train', name)
+    fname2 = os.path.join(result_dir, 'test', name)
+    return fname1, fname2
+
+def get_dnn_rst_name():
+    nl = 1
+    hs = 50
+    result_dir = os.path.join(config.io.outdir, 'dnn')
+    fname1 = os.path.join(result_dir, 'train', 'dnn__nl_{}__hs_{}.txt'.format(nl,hs))
+    fname2 = os.path.join(result_dir, 'test', 'dnn__nl_{}__hs_{}.txt'.format(nl,hs))
+    return fname1, fname2
 
 if __name__ == "__main__":
     # setup spark.
@@ -235,96 +294,99 @@ if __name__ == "__main__":
             .set("spark.executor.memory", "50g")
             .set("spark.ui.showConsoleProgress", "true"))
     sc = SparkContext(conf=conf)
-    # load rst
-    rst_train_file = "../results/dnn/train/dnn_nl-5_hs-10_train"
-    with open(rst_train_file, "r") as fp:
-        lines = fp.read().strip().split('\n')
-        train_rst = []
-        all_train_rst = []
-        for l in lines:
-            user, day, score, red = l.split('\t')
-            user = int(user)
-            day = int(day)
-            score = float(score)
-            red = int(red)
-            start_day, end_day = config.bn.rect.train_days
-            all_train_rst.append([user, day, score, red])
-            if day >= start_day and day <= end_day:
-                train_rst.append([user, day, score, red])
-    rst_test_file = "../results/dnn/test/dnn_nl-5_hs-10_test"
-    with open(rst_test_file, "r") as fp:
-        lines = fp.read().strip().split('\n')
-        test_rst = []
-        for l in lines:
-            user, day, score, red = l.split('\t')
-            user = int(user)
-            day = int(day)
-            score = float(score)
-            red = int(red)
-            test_rst.append([user, day, score, red])
-    print("Load %s with %d lines." % (rst_train_file, len(all_train_rst)))
-    print("Load %s with %d lines." % (rst_test_file, len(test_rst)))
-    # rectify
-    xdata, ydata, stds = extract_xy_from_rst(all_train_rst)
-    params = train_rectification(train_rst)
-    apply_rectification(all_train_rst, params)
-    apply_rectification(test_rst, params)
-    xdata2, ydata2, stds2 = extract_xy_from_rst(all_train_rst)
-    plot_1std_scores(xdata, ydata, stds, ydata2, stds2,
-                     '../cache/rect.png', params)
-    print('Saved ../cache/rect.png')
-    # group data by user and parallelize.
-    train_rst_by_users = group_by_user(train_rst)
-    test_rst_by_users = group_by_user(test_rst)
-    rdd_train_rst_by_users = sc.parallelize(train_rst_by_users)
-    rdd_test_rst_by_users = sc.parallelize(test_rst_by_users)
-    # create feature.
-    target_ticks = calculate_ticks(
-        train_rst, config.bn.observed_target.ratio)
-    neighbor_ticks = calculate_ticks(
-        train_rst, config.bn.observed_neighbor.ratio)
-    # [[user, day, red, target, s1, c1, s2, c2, l1, l2],]
-    train_ret = rdd_train_rst_by_users.flatMap(partial(
-        extract_user_feat, target_ticks, neighbor_ticks)).collect()
-    test_ret = rdd_test_rst_by_users.flatMap(partial(
-        extract_user_feat, target_ticks, neighbor_ticks)).collect()
-    print('Extracted train features %d' % (len(train_ret)))
-    # calculate cr scores using the features
-    rst_target = []
-    rst_min_state = []
-    rst_min_state2 = []
-    rst_latent = []
-    npf = np.array(test_ret)
-    for feat in test_ret:
-        u, d, r, t, s, _, s2 = feat[:7]
-        l = feat[-config.bn.observed_neighbor.num_periods]
-        rst_target.append((d, -t, r))
-        rst_min_state.append((d, -s, r))
-        rst_min_state2.append((d, -s2, r))
-        rst_latent.append((d, l, r))
-    rst_target = sorted(rst_target, key=operator.itemgetter(0))
-    rst_min_state = sorted(rst_min_state, key=operator.itemgetter(0))
-    rst_min_state2 = sorted(rst_min_state2, key=operator.itemgetter(0))
-    rst_latent = sorted(rst_latent, key=operator.itemgetter(0))
-    for b in config.cr.budgets:
-        cr_score_target = cumulative_recall(rst_target, b, config.cr.increment)
-        cr_score_minstate = cumulative_recall(rst_min_state, b, config.cr.increment)
-        cr_score_minstate2 = cumulative_recall(rst_min_state2, b, config.cr.increment)
-        cr_score_latent = cumulative_recall(rst_latent, b, config.cr.increment)
-        print("CR-%d (target): %.4f" % (b, cr_score_target))
-        print("CR-%d (minstate): %.4f" % (b, cr_score_minstate))
-        print("CR-%d (minstate2): %.4f" % (b, cr_score_minstate2))
-        print("CR-%d (latent): %.4f" % (b, cr_score_latent))
-    # save features
-    out_train_file = rst_train_file.split('/')[-1]+'_bn_feat.pkl'
-    out_train_file = os.path.join('../cache', out_train_file)
-    with open(out_train_file, 'wb+') as fp:
-        cPickle.dump(train_ret, fp, protocol=2)
-    out_test_file = rst_test_file.split('/')[-1]+'_bn_feat.pkl'
-    out_test_file = os.path.join('../cache', out_test_file)
-    with open(out_test_file, 'wb+') as fp:
-        cPickle.dump(test_ret, fp, protocol=2)
-    print('Done. Saved to ../cache/*._bn_feat.pkl')
+    # define rst files.
+    all_rst_files = [get_svm_rst_name(), get_pca_rst_name(), get_random_rst_name(),
+                           get_iso_forest_rst_name(), get_dnn_rst_name()]
+    all_rst_files = [get_dnn_rst_name()]
+    for rst_train_file, rst_test_file in all_rst_files:
+        print('-------------------------------------------')
+        # load rst
+        with open(rst_train_file, "r") as fp:
+            lines = fp.read().strip().split('\n')
+            train_rst = []
+            all_train_rst = []
+            for l in lines:
+                user, day, score, red = l.split('\t')
+                user = int(user)
+                day = int(day)
+                score = float(score)
+                red = int(red)
+                start_day, end_day = config.bn.rect.train_days
+                all_train_rst.append([user, day, score, red])
+                if day >= start_day and day <= end_day:
+                    train_rst.append([user, day, score, red])
+        with open(rst_test_file, "r") as fp:
+            lines = fp.read().strip().split('\n')
+            test_rst = []
+            for l in lines:
+                user, day, score, red = l.split('\t')
+                user = int(user)
+                day = int(day)
+                score = float(score)
+                red = int(red)
+                test_rst.append([user, day, score, red])
+        print("Load %s with %d lines." % (rst_train_file, len(all_train_rst)))
+        print("Load %s with %d lines." % (rst_test_file, len(test_rst)))
+        # rectify
+        xdata, ydata, stds = extract_xy_from_rst(all_train_rst)
+        params = train_rectification(train_rst)
+        apply_rectification(all_train_rst, params)
+        apply_rectification(test_rst, params)
+        xdata2, ydata2, stds2 = extract_xy_from_rst(all_train_rst)
+        plot_1std_scores(xdata, ydata, stds, ydata2, stds2,
+                         '../cache/rect.png', params)
+        # group data by user and parallelize.
+        train_rst_by_users = group_by_user(train_rst)
+        test_rst_by_users = group_by_user(test_rst)
+        rdd_train_rst_by_users = sc.parallelize(train_rst_by_users)
+        rdd_test_rst_by_users = sc.parallelize(test_rst_by_users)
+        # create feature.
+        target_ticks = calculate_ticks(
+            train_rst, config.bn.observed_target.ratio)
+        neighbor_ticks = calculate_ticks(
+            train_rst, config.bn.observed_neighbor.ratio)
+        # [[user, day, red, target, s1, c1, s2, c2, l1, l2],]
+        train_ret = rdd_train_rst_by_users.flatMap(partial(
+            extract_user_feat, target_ticks, neighbor_ticks)).collect()
+        test_ret = rdd_test_rst_by_users.flatMap(partial(
+            extract_user_feat, target_ticks, neighbor_ticks)).collect()
+        print('Extracted train features %d' % (len(train_ret)))
+        # calculate cr scores using the features
+        rst_target = []
+        rst_min_state = []
+        rst_min_state2 = []
+        rst_latent = []
+        npf = np.array(test_ret)
+        for feat in test_ret:
+            u, d, r, t, s, _, s2 = feat[:7]
+            l = feat[-config.bn.observed_neighbor.num_periods]
+            rst_target.append((d, -t, r))
+            rst_min_state.append((d, -s, r))
+            rst_min_state2.append((d, -s2, r))
+            rst_latent.append((d, l, r))
+        rst_target = sorted(rst_target, key=operator.itemgetter(0))
+        rst_min_state = sorted(rst_min_state, key=operator.itemgetter(0))
+        rst_min_state2 = sorted(rst_min_state2, key=operator.itemgetter(0))
+        rst_latent = sorted(rst_latent, key=operator.itemgetter(0))
+        for b in config.cr.budgets:
+            cr_score_target = cumulative_recall(rst_target, b, config.cr.increment)
+            cr_score_minstate = cumulative_recall(rst_min_state, b, config.cr.increment)
+            cr_score_minstate2 = cumulative_recall(rst_min_state2, b, config.cr.increment)
+            cr_score_latent = cumulative_recall(rst_latent, b, config.cr.increment)
+            print("CR-%d (target): %.4f" % (b, cr_score_target))
+            print("CR-%d (minstate): %.4f" % (b, cr_score_minstate))
+            print("CR-%d (minstate2): %.4f" % (b, cr_score_minstate2))
+            print("CR-%d (latent): %.4f" % (b, cr_score_latent))
+        # save features
+        out_train_file = rst_train_file.split('/')[-1]+'_bn_feat.pkl'
+        out_train_file = os.path.join('../cache', out_train_file)
+        with open(out_train_file, 'wb+') as fp:
+            cPickle.dump(train_ret, fp, protocol=2)
+        out_test_file = rst_test_file.split('/')[-1]+'_bn_feat.pkl'
+        out_test_file = os.path.join('../cache', out_test_file)
+        with open(out_test_file, 'wb+') as fp:
+            cPickle.dump(test_ret, fp, protocol=2)
+        print('Done. Saved to ../cache/*._bn_feat.pkl')
 
 
 

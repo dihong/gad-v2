@@ -67,30 +67,18 @@ config.nb.prefix = 'nb'
 
 # data
 config.data = edict()
-config.data.train_file = '../r6.2/count/train_by_days.txt' # = all_fixed.txt
-config.data.test_file = '../r6.2/count/test_by_days.txt' # = all_fixed.txt
 config.data.all_fixed_txt = '../r6.2/count/features/all_fixed.txt'
 config.data.all_fixed_json = '../r6.2/count/features/all_fixed.json'
-config.data.compact_feat = '../r6.2/count/features/compact10d.txt' # compact.
+config.data.compact_txt = '../r6.2/count/features/compact10d.txt' # compact.
+config.data.compact_json = '../r6.2/count/features/compact10d.json' # compact.
+config.data.relational_feat = '../extra-features/feat.pkl'
 config.data.train_ratio = 0.85  # ratio of data used for training.
 
 # checks
 from os import path as osp
-assert osp.isfile(config.data.train_file), "{} does not exist.".format(
-    config.data.train_file)
-assert osp.isfile(config.data.test_file), "{} does not exist.".format(
-    config.data.test_file)
 assert osp.isdir(config.io.indir), "{} does not exist.".format(config.io.indir)
 assert osp.isdir(config.io.outdir), "{} does not exist.".format(
     config.io.outdir)
 assert osp.isdir(config.io.score), "{} does not exist.".format(config.io.score)
 
 
-######
-def bn_neighbor(intval, count):
-    ret = edict()
-    ret.intvl = intvl
-    ret.count = count
-    ret.intvl_state = range(len(intvl))
-    ret.intvl_count = range(len(count))
-    return ret
