@@ -1,5 +1,5 @@
 """
-This script extracts features from anonymous scores for Bayesian Network.
+This script extracts features from anomaly scores for Bayesian Network.
 """
 
 from __future__ import print_function
@@ -16,15 +16,17 @@ from matplotlib import collections as mc
 import itertools
 from functools import partial
 from util import cumulative_recall
+from util import FileName
 import cPickle
 import copy
+from collections import Counter
 
 
 def func(x, a, b, c):
     return a * np.exp(-b * x) + c
 
 
-def plot_1std_scores(x, y, s, y2, s2, outfile, params):
+def plot_1std_scores(x, y, s, x2, y2, s2, outfile):
     lines = []
     lines2 = []
     for k, val in enumerate(x):
@@ -32,17 +34,15 @@ def plot_1std_scores(x, y, s, y2, s2, outfile, params):
         vy = y[k]
         vs = s[k]
         l = [(vx, vy - vs), (vx, vy + vs)]
-        l2 = [(vx + 0.5, y2[k] - s2[k]), (vx + 0.5, y2[k] + s2[k])]
         lines.append(l)
+    for k, val in enumerate(x2):
+        l2 = [(x2[k] + 0.5, y2[k] - s2[k]), (x2[k] + 0.5, y2[k] + s2[k])]
         lines2.append(l2)
-    lc = mc.LineCollection(lines, linewidths=0.5, color=[0, 0.2, 0.8])
-    lc2 = mc.LineCollection(lines2, linewidths=0.5, color=[0, 0.8, 0.2])
+    lc = mc.LineCollection(lines, linewidths=0.5, color=[0, 0.8, 0.2])
+    lc2 = mc.LineCollection(lines2, linewidths=0.5, color=[0.8, 0.2, 0])
     fig, ax = plt.subplots()
     ax.add_collection(lc)
     ax.add_collection(lc2)
-    if params is not None:
-        fity = [func(xval, *params) for xval in x]
-        plt.plot(x, fity, '--', linewidth=2, color='red')
     ax.autoscale()
     ax.margins(0.1)
     fig.savefig(outfile)
@@ -107,16 +107,16 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
     target_sid = 0
     neighbor_sid = 0
     target_states = []
-    neighbor_states = [] # [(day, observed_state)]
+    neighbor_states = []  # [(day, observed_state)]
     for d, s in day_scores:
         target_states.append((d, target_sid))
         if s < target_ticks[target_sid]:
             target_sid += 1
-            target_sid = min(target_sid, len(target_ticks)-1)
+            target_sid = min(target_sid, len(target_ticks) - 1)
         neighbor_states.append((d, neighbor_sid))
         if s < neighbor_ticks[neighbor_sid]:
             neighbor_sid += 1
-            neighbor_sid = min(neighbor_sid, len(neighbor_ticks)-1)
+            neighbor_sid = min(neighbor_sid, len(neighbor_ticks) - 1)
     target_states = sorted(target_states)
     neighbor_states = sorted(neighbor_states)
     # [k] is state of day[k]
@@ -127,8 +127,10 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
     winsize = config.bn.observed_neighbor.timespan
     num_periods = config.bn.observed_neighbor.num_periods
     # [(min_state, count)]
-    userday_neighbor = np.inf*np.ones(shape=(num_periods, ndays, 2), dtype=np.int)
-    userday_numreds = np.zeros(shape=(num_periods, ndays), dtype=np.int) # number of reds.
+    userday_neighbor = np.inf * \
+        np.ones(shape=(num_periods, ndays, 2), dtype=np.int)
+    # number of reds.
+    userday_numreds = np.zeros(shape=(num_periods, ndays), dtype=np.int)
     win_num_reds = 0
     for pos in range(ndays + winsize - 1):
         lb = pos - winsize
@@ -168,18 +170,21 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
                         min_state, min_state_count]
                 elif min_state == userday_neighbor[period_id][update_index][0]:
                     # both sides have the same min_state, add the count!
-                    userday_neighbor[period_id][update_index][1] += min_state_count
+                    userday_neighbor[period_id][
+                        update_index][1] += min_state_count
     if config.bn.use_overlapping_periods:
         # use overlapping periods.
         for period_id in range(1, num_periods):
             for dayid in range(ndays):
-                prev_min_state, prev_cnt = userday_neighbor[period_id-1][dayid]
+                prev_min_state, prev_cnt = userday_neighbor[
+                    period_id - 1][dayid]
                 cur_min_state, cur_cnt = userday_neighbor[period_id][dayid]
-                if prev_min_state==cur_min_state:
+                if prev_min_state == cur_min_state:
                     userday_neighbor[period_id][dayid][1] = prev_cnt + cur_cnt
-                elif prev_min_state<cur_min_state:
-                    userday_neighbor[period_id][dayid] = [prev_min_state, prev_cnt]
-                prev_numreds = userday_numreds[period_id-1][dayid]
+                elif prev_min_state < cur_min_state:
+                    userday_neighbor[period_id][dayid] = [
+                        prev_min_state, prev_cnt]
+                prev_numreds = userday_numreds[period_id - 1][dayid]
                 userday_numreds[period_id][dayid] += prev_numreds
 
     # calculate the hidden_state for all userdays.
@@ -199,7 +204,7 @@ def extract_user_feat(target_ticks, neighbor_ticks, user_data):
     # construct feature [user, day, red, target, s1, c1, s2, c2, l1, l2]
     ret = []
     dayid = 0
-    max_min_state = len(neighbor_ticks)-1
+    max_min_state = len(neighbor_ticks) - 1
     for u, d, s, r in user_data:
         sc = []
         latent = []
@@ -233,71 +238,20 @@ def group_by_user(rst):
         ret[u].append((u, d, s, r))
     return ret.values()
 
-def get_svm_rst_name():
-    rs = config.state.random_seed
-    nu = 0.25
-    kernel = 'sigmoid'
-    gamma = 0.1
-    shrink = False
-    result_dir = os.path.join(config.io.outdir, 'svm')
-    name = 'svm__rs_{}__nu_{:.2f}__kernel_{}__gamma_{:.1f}__shrink_{}.txt'.format(
-        rs, nu, kernel, gamma, shrink)
-    fname1 = os.path.join(result_dir, 'train', name)
-    fname2 = os.path.join(result_dir, 'test', name)
-    return fname1, fname2
-
-def get_random_rst_name():
-    result_dir = os.path.join(config.io.outdir, 'random')
-    rs = config.state.random_seed
-    name = 'random__rs_{}.txt'.format(rs)
-    fname1 = os.path.join(result_dir, 'train', name)
-    fname2 = os.path.join(result_dir, 'test', name)
-    return fname1, fname2
-
-def get_iso_forest_rst_name():
-    result_dir = os.path.join(config.io.outdir, 'iso_forest')
-    rs = config.state.random_seed
-    n_estimators = 150
-    max_samples = 'auto'
-    contamination = 0.1
-    max_features = 1.0  # default is 1.0 (use all features)
-    bootstrap = False
-    name = 'iso_forest__rs_{}__n_{}__maxsamples_{}__contamination_{}__maxfeatures_{}__bootstrap_{}.txt'.format(
-        rs, n_estimators, max_samples, contamination, max_features, bootstrap)
-    fname1 = os.path.join(result_dir, 'train', name)
-    fname2 = os.path.join(result_dir, 'test', name)
-    return fname1, fname2
-
-
-def get_pca_rst_name():
-    result_dir = os.path.join(config.io.outdir, 'pca')
-    rs = config.state.random_seed
-    n_components = 10
-    name = 'pca__rs_{}__n_{}.txt'.format(rs, n_components)
-    fname1 = os.path.join(result_dir, 'train', name)
-    fname2 = os.path.join(result_dir, 'test', name)
-    return fname1, fname2
-
-def get_dnn_rst_name():
-    nl = 1
-    hs = 50
-    result_dir = os.path.join(config.io.outdir, 'dnn')
-    fname1 = os.path.join(result_dir, 'train', 'dnn__nl_{}__hs_{}.txt'.format(nl,hs))
-    fname2 = os.path.join(result_dir, 'test', 'dnn__nl_{}__hs_{}.txt'.format(nl,hs))
-    return fname1, fname2
-
 if __name__ == "__main__":
     # setup spark.
     conf = (SparkConf()
-            .setMaster(config.SPARK_MASTER)
+            .setMaster(config.spark.SPARK_MASTER)
             .set("spark.app.name", __file__)
             .set("spark.executor.memory", "50g")
             .set("spark.ui.showConsoleProgress", "true"))
     sc = SparkContext(conf=conf)
     # define rst files.
-    all_rst_files = [get_svm_rst_name(), get_pca_rst_name(), get_random_rst_name(),
-                           get_iso_forest_rst_name(), get_dnn_rst_name()]
-    all_rst_files = [get_dnn_rst_name()]
+    all_rst_files = [FileName.get_pca_rst_name(),
+                     FileName.get_svm_rst_name(),
+                     FileName.get_random_rst_name(),
+                     FileName.get_iso_forest_rst_name(),
+                     FileName.get_dnn_rst_name()]
     for rst_train_file, rst_test_file in all_rst_files:
         print('-------------------------------------------')
         # load rst
@@ -329,12 +283,10 @@ if __name__ == "__main__":
         print("Load %s with %d lines." % (rst_test_file, len(test_rst)))
         # rectify
         xdata, ydata, stds = extract_xy_from_rst(all_train_rst)
-        params = train_rectification(train_rst)
-        apply_rectification(all_train_rst, params)
-        apply_rectification(test_rst, params)
-        xdata2, ydata2, stds2 = extract_xy_from_rst(all_train_rst)
-        plot_1std_scores(xdata, ydata, stds, ydata2, stds2,
-                         '../cache/rect.png', params)
+        xdata2, ydata2, stds2 = extract_xy_from_rst(test_rst)
+        plot_1std_scores(xdata, ydata, stds, xdata2,
+                         ydata2, stds2, '../cache/%s.png' %
+                         rst_train_file.split('/')[-1][:3])
         # group data by user and parallelize.
         train_rst_by_users = group_by_user(train_rst)
         test_rst_by_users = group_by_user(test_rst)
@@ -350,7 +302,15 @@ if __name__ == "__main__":
             extract_user_feat, target_ticks, neighbor_ticks)).collect()
         test_ret = rdd_test_rst_by_users.flatMap(partial(
             extract_user_feat, target_ticks, neighbor_ticks)).collect()
+        train_ret = np.array(train_ret, dtype=np.int)
+        test_ret = np.array(test_ret, dtype=np.int)
         print('Extracted train features %d' % (len(train_ret)))
+        # debug: print distribution of the states.
+        train_dist = Counter(train_ret[:, 2:].flatten())
+        test_dist = Counter(test_ret[:, 2:].flatten())
+        train_dist.pop(0, None)
+        test_dist.pop(0, None)
+        print("train_dist: %s\ntest_dist:%s" % (train_dist, test_dist))
         # calculate cr scores using the features
         rst_target = []
         rst_min_state = []
@@ -369,24 +329,23 @@ if __name__ == "__main__":
         rst_min_state2 = sorted(rst_min_state2, key=operator.itemgetter(0))
         rst_latent = sorted(rst_latent, key=operator.itemgetter(0))
         for b in config.cr.budgets:
-            cr_score_target = cumulative_recall(rst_target, b, config.cr.increment)
-            cr_score_minstate = cumulative_recall(rst_min_state, b, config.cr.increment)
-            cr_score_minstate2 = cumulative_recall(rst_min_state2, b, config.cr.increment)
-            cr_score_latent = cumulative_recall(rst_latent, b, config.cr.increment)
+            cr_score_target = cumulative_recall(
+                rst_target, b, config.cr.increment)
+            cr_score_minstate = cumulative_recall(
+                rst_min_state, b, config.cr.increment)
+            cr_score_minstate2 = cumulative_recall(
+                rst_min_state2, b, config.cr.increment)
+            cr_score_latent = cumulative_recall(
+                rst_latent, b, config.cr.increment)
             print("CR-%d (target): %.4f" % (b, cr_score_target))
             print("CR-%d (minstate): %.4f" % (b, cr_score_minstate))
             print("CR-%d (minstate2): %.4f" % (b, cr_score_minstate2))
             print("CR-%d (latent): %.4f" % (b, cr_score_latent))
         # save features
-        out_train_file = rst_train_file.split('/')[-1]+'_bn_feat.pkl'
-        out_train_file = os.path.join('../cache', out_train_file)
+        out_train_file, out_test_file = FileName.get_bn_feat_name(rst_train_file,
+                                                                  rst_test_file)
         with open(out_train_file, 'wb+') as fp:
             cPickle.dump(train_ret, fp, protocol=2)
-        out_test_file = rst_test_file.split('/')[-1]+'_bn_feat.pkl'
-        out_test_file = os.path.join('../cache', out_test_file)
         with open(out_test_file, 'wb+') as fp:
             cPickle.dump(test_ret, fp, protocol=2)
-        print('Done. Saved to ../cache/*._bn_feat.pkl')
-
-
-
+        print('Done. Saved to %s and %s' % (out_train_file, out_test_file))

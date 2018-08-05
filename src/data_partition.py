@@ -5,6 +5,7 @@ from config import config
 from batch import DayBatcher
 import numpy as np
 import operator
+import os
 
 
 def partition_by_user(infile_by_days, outfile_by_users):
@@ -55,6 +56,8 @@ def partition_by_user_into_matrices(infile_by_days):
 def create_compact_features():
     with open(config.data.relational_feat, 'r') as fp:
         data_by_user = cPickle.load(fp)
+    print("Load data from %s with %d users." % (config.data.relational_feat,
+                                                len(data_by_user)))
     out = ["day user redteam logon_other_pc logon_after_hours access_file_other_pc to_removable from_removable decoy_file http_jobhunting http_cloudstorage recv_nonorg send_nonorg"]
     tmp = []
     userid = 1
@@ -66,6 +69,7 @@ def create_compact_features():
         user_key = userdict[user]
         for day, feat in enumerate(val):
             tmp.append([user_key, day] + list(feat))
+    # sort by day
     tmp = sorted(tmp, key=operator.itemgetter(1), reverse=False)
     for val in tmp:
         user = val[0]
@@ -73,10 +77,12 @@ def create_compact_features():
         red = val[-1]
         feat = val[2:-1]
         meta = '%d %d %d ' % (day, user, max(0,red))
-        out.append(meta+' '.join(['%d'%max(v,0) for v in feat]))
+        out.append(meta+' '.join(['%d'%max(0,v) for v in feat]))
     out = '\n'.join(out)
-    with open('../r6.2/count/features/compact10d.txt', 'w+') as fp:
+    with open(config.data.compact_txt, 'w+') as fp:
         fp.write(out)
+    os.system('rm %s.npy' % config.data.compact_txt[:-4])
+    print("Save features to %s." % config.data.compact_txt)
 
 
 if __name__=="__main__":
