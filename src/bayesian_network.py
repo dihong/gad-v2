@@ -76,7 +76,6 @@ if __name__ == "__main__":
         cpds_out.append(rst_train_file.split('/')[-1][:3])
         for cpd in model.get_cpds():
             cpds_out.append(str(cpd))
-        continue
         # make prediction
         rdd_test_feat = sc.parallelize(
             np.array_split(test_feat, config.spark.cores), config.spark.cores)
