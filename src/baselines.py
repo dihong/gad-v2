@@ -388,8 +388,6 @@ if __name__ == '__main__':
     results = []
     results.append(pool.apply_async(run_pca_test,
                                   [(data_file, os.path.join(outdir, 'pca'))]))
-    results.append(pool.apply_async(run_random_test,
-                                  [(data_file, os.path.join(outdir, 'random'))]))
     results.append(pool.apply_async(run_dnn_test,
                                   [(data_file, json_file,
                                     os.path.join(outdir, 'dnn'))]))

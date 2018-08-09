@@ -38,7 +38,6 @@ if __name__ == "__main__":
     # all the rst_files to be tested.
     all_rst_files = [FileName.get_dnn_rst_name(),
                      FileName.get_pca_rst_name(),
-                     FileName.get_random_rst_name(),
                      FileName.get_iso_forest_rst_name(),
                      FileName.get_svm_rst_name()]
     #fp = open('cpds.txt', 'w+')

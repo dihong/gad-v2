@@ -249,7 +249,6 @@ if __name__ == "__main__":
     # define rst files.
     all_rst_files = [FileName.get_pca_rst_name(),
                      FileName.get_svm_rst_name(),
-                     FileName.get_random_rst_name(),
                      FileName.get_iso_forest_rst_name(),
                      FileName.get_dnn_rst_name()]
     for rst_train_file, rst_test_file in all_rst_files:
