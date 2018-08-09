@@ -36,11 +36,13 @@ if __name__ == "__main__":
             .set("spark.ui.showConsoleProgress", "true"))
     sc = SparkContext(conf=conf)
     # all the rst_files to be tested.
-    all_rst_files = [FileName.get_pca_rst_name(),
-                     FileName.get_dnn_rst_name(),
+    all_rst_files = [FileName.get_dnn_rst_name(),
+                     FileName.get_pca_rst_name(),
                      FileName.get_random_rst_name(),
                      FileName.get_iso_forest_rst_name(),
                      FileName.get_svm_rst_name()]
+    #fp = open('cpds.txt', 'w+')
+    cpds_out = []
     for rst_train_file, rst_test_file in all_rst_files:
         # load bnfeat.
         train_file, test_file = FileName.get_bn_feat_name(rst_train_file,
@@ -63,14 +65,19 @@ if __name__ == "__main__":
             header.append('L%d' % k)
         pdata = pd.DataFrame(
             data={k: v for k, v in zip(header, train_feat[:, 2:].T)})
-        # train bn model
+        # train bn model: by default fit() will use MLE.
         edges = [('T', 'R')]
         for k in range(config.bn.observed_neighbor.num_periods):
             edges.append(('L%d' % k, 'R'))
             edges.append(('M%d' % k, 'L%d' % k))
             edges.append(('C%d' % k, 'L%d' % k))
         model = BayesianModel(edges)
-        model.fit(pdata)
+        model.fit(pdata) 
+        # print cpds into file.
+        cpds_out.append(rst_train_file.split('/')[-1][:3])
+        for cpd in model.get_cpds():
+            cpds_out.append(str(cpd))
+        continue
         # make prediction
         rdd_test_feat = sc.parallelize(
             np.array_split(test_feat, config.spark.cores), config.spark.cores)
@@ -84,3 +91,7 @@ if __name__ == "__main__":
             cr_score = cumulative_recall(rst, b, config.cr.increment)
             print(Bcolors.WARNING+"CR(%s)-%d: %.4f" %
                   (test_file, b, cr_score)+Bcolors.ENDC)
+    outfile = os.path.join(config.io.cache, 'cpds.txt')
+    with open(outfile, 'w+') as fp:
+        fp.write('\n'.join(cpds_out))
+    print("Saved conditional distribution probability to %s." % outfile)
