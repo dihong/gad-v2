@@ -40,9 +40,9 @@ if __name__ == "__main__":
                      FileName.get_pca_rst_name(),
                      FileName.get_iso_forest_rst_name(),
                      FileName.get_svm_rst_name()]
-    #fp = open('cpds.txt', 'w+')
-    cpds_out = []
     for rst_train_file, rst_test_file in all_rst_files:
+        cpds_out = []
+        rst_out = ['Day       Prob        Label']
         # load bnfeat.
         train_file, test_file = FileName.get_bn_feat_name(rst_train_file,
                                                           rst_test_file)
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         model = BayesianModel(edges)
         model.fit(pdata) 
         # print cpds into file.
-        cpds_out.append(rst_train_file.split('/')[-1][:3])
+        method_name = rst_train_file.split('/')[-1][:3]
         for cpd in model.get_cpds():
             cpds_out.append(str(cpd))
         # make prediction
@@ -83,13 +83,20 @@ if __name__ == "__main__":
         # calculate cr
         rst = []
         for f, p in zip(test_feat, probs):
-            rst.append((f[1], p, f[2]))
+            rst.append((f[1], p, f[2]))  # (day, prob(red), label(0/1))
+            rst_out.append('%03d       %.6f    -%d-'%(f[1], p, f[2]))
         rst = sorted(rst, key=operator.itemgetter(0))
         for b in config.cr.budgets:
             cr_score = cumulative_recall(rst, b, config.cr.increment)
             print(Bcolors.WARNING+"CR(%s)-%d: %.4f" %
                   (test_file, b, cr_score)+Bcolors.ENDC)
-    outfile = os.path.join(config.io.cache, 'cpds.txt')
-    with open(outfile, 'w+') as fp:
-        fp.write('\n'.join(cpds_out))
-    print("Saved conditional distribution probability to %s." % outfile)
+        # save cpd
+        outfile = os.path.join(config.io.cache, '%s_cpds.txt'%method_name)
+        with open(outfile, 'w+') as fp:
+            fp.write('\n'.join(cpds_out))
+        print("Saved conditional distribution probability to %s." % outfile)
+        # save rst
+        outfile = os.path.join(config.io.cache, '%s_scores.txt'%method_name)
+        with open(outfile, 'w+') as fp:
+            fp.write('\n'.join(rst_out))
+        print("Saved rst to %s." % outfile)
