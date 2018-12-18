@@ -238,8 +238,6 @@ def write_compact_features(data_by_user):
     out = '\n'.join(out)
     with open(config.data.compact_txt, 'w+') as fp:
         fp.write(out)
-    # remove cached data
-    os.system('rm %s.npy 2>/dev/null' % config.data.compact_txt[:-4])
     print("Save features to %s." % config.data.compact_txt)
 
 if __name__ == "__main__":
@@ -280,7 +278,7 @@ if __name__ == "__main__":
     # load decoy files.
     cache = load_cache("decoy_file.pkl")
     if cache is None:
-        decoy_file = osp.join(config.io.data_dir, "events", "decoy_file.csv")
+        decoy_file = osp.join(config.io.data_dir, "decoy_file.csv")
         dfiles = set()
         with open(decoy_file, "r") as fp:
             for line in fp.read().strip().split('\n')[1:]:
@@ -290,14 +288,14 @@ if __name__ == "__main__":
                 pc = pc.strip('"')
                 dfiles.add('%s@%s' % (fname, pc))
         save_cache("decoy_file.pkl", dfiles)
-        print("Loaded %d decoy files from %s" % (len(dfiles)), decoy_file)
+        print("Loaded %d decoy files from %s" % (len(dfiles), decoy_file))
     else:
         dfiles = cache
         print("Loaded %d decoy files from %s" %
               (len(dfiles), "decoy_file.pkl"))
 
     # for each user, get their email.
-    with open(osp.join(config.io.data_dir, "events/LDAP/2009-12.csv")) as fp:
+    with open(osp.join(config.io.data_dir, "LDAP/2009-12.csv")) as fp:
         lines = fp.read().strip().split('\n')[1:]
         user_email = {}
         for line in lines:
@@ -309,7 +307,7 @@ if __name__ == "__main__":
     # load logon.csv
     cache = load_cache("logon.pkl")
     if cache is None:
-        logon_file = osp.join(config.io.data_dir, "events", "logon.csv")
+        logon_file = osp.join(config.io.data_dir, "logon.csv")
         assert osp.isfile(logon_file), logon_file
         with open(logon_file, "r") as fp:
             logon_lines = [l.strip()
@@ -346,7 +344,7 @@ if __name__ == "__main__":
     # load file.csv
     cache = load_cache("file.pkl")
     if cache is None:
-        file_file = osp.join(config.io.data_dir, "events", "file.csv")
+        file_file = osp.join(config.io.data_dir, "file.csv")
         assert osp.isfile(file_file), file_file
         with open(file_file, "r") as fp:
             file_lines = [l.strip()
@@ -360,8 +358,12 @@ if __name__ == "__main__":
     # load http.csv
     cache = load_cache("http.pkl")
     if cache is None:
-        http_file = osp.join(config.io.data_dir, "events",
-                             "http_without_content.csv")
+        http_file = "/tmp/http_without_content.csv"
+        # create a new http log file by removing contents for better computational efficiency.
+        if osp.isfile(http_file) == False:
+            print 'Creating %s...' % http_file
+            os.system('cut %s -d , -f 1-6 >> %s'
+                      % (osp.join(config.io.data_dir, 'http.csv'), http_file))
         assert osp.isfile(http_file), http_file
         with open(http_file, "r") as fp:
             http_lines = []
@@ -383,8 +385,12 @@ if __name__ == "__main__":
     # load email.csv
     cache = load_cache("email.pkl")
     if cache is None:
-        email_file = osp.join(config.io.data_dir, "events",
-                              "email_without_content.csv")
+        email_file = "/tmp/email_without_content.csv"
+        # create a new email log file by removing contents for better computational efficiency.
+        if osp.isfile(email_file) == False:
+            print 'Creating %s...' % email_file
+            os.system('cut %s -d , -f 1-11 >> %s'
+                      % (osp.join(config.io.data_dir, 'email.csv'), email_file))
         assert osp.isfile(email_file), email_file
         with open(email_file, "r") as fp:
             email_lines = [l.strip()

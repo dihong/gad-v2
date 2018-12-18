@@ -1,0 +1,37 @@
+{
+  "num_features": 13,
+  "time": {
+    "index": [0],
+    "num_classes": 0,
+    "meta": 1,
+    "feature": 0,
+    "target": 0},
+
+  "user": {
+    "index": [1],
+    "num_classes": 4000,
+    "meta": 1,
+    "feature": 0,
+    "target": 0},
+
+  "redteam": {
+    "index": [2],
+    "num_classes": 0,
+    "meta": 1,
+    "feature": 0,
+    "target": 0},
+
+  "counts": {
+    "index": [3,4,5,6,7,8,9,10,11,12],
+    "num_classes": 0,
+    "meta": 0,
+    "feature": 1,
+    "target": 1},
+
+  "inputs": {
+    "index": [0,1,2,3,4,5,6,7,8,9,10,11,12],
+    "num_classes": 0,
+    "meta": 0,
+    "feature": 0,
+    "target": 0}
+}

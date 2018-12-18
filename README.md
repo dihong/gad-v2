@@ -6,5 +6,7 @@ The second version (v2) of the insider threat detection. The v2 has the followin
 
 ## Requirements
     - Apache Spark
+    - pip install wrapt
+    - pip install pgmpy
 ## Run the codes
     - bash run.sh

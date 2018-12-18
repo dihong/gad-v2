@@ -280,12 +280,7 @@ if __name__ == "__main__":
                 test_rst.append([user, day, score, red])
         print("Load %s with %d lines." % (rst_train_file, len(all_train_rst)))
         print("Load %s with %d lines." % (rst_test_file, len(test_rst)))
-        # rectify
         xdata, ydata, stds = extract_xy_from_rst(all_train_rst)
-        xdata2, ydata2, stds2 = extract_xy_from_rst(test_rst)
-        plot_1std_scores(xdata, ydata, stds, xdata2,
-                         ydata2, stds2, '../cache/%s.png' %
-                         rst_train_file.split('/')[-1][:3])
         # group data by user and parallelize.
         train_rst_by_users = group_by_user(train_rst)
         test_rst_by_users = group_by_user(test_rst)
@@ -336,10 +331,11 @@ if __name__ == "__main__":
                 rst_min_state2, b, config.cr.increment)
             cr_score_latent = cumulative_recall(
                 rst_latent, b, config.cr.increment)
-            print("CR-%d (target): %.4f" % (b, cr_score_target))
-            print("CR-%d (minstate): %.4f" % (b, cr_score_minstate))
-            print("CR-%d (minstate2): %.4f" % (b, cr_score_minstate2))
-            print("CR-%d (latent): %.4f" % (b, cr_score_latent))
+            # Debugging info
+            # print("CR-%d (target): %.4f" % (b, cr_score_target))
+            # print("CR-%d (minstate): %.4f" % (b, cr_score_minstate))
+            # print("CR-%d (minstate2): %.4f" % (b, cr_score_minstate2))
+            # print("CR-%d (latent): %.4f" % (b, cr_score_latent))
         # save features
         out_train_file, out_test_file = FileName.get_bn_feat_name(rst_train_file,
                                                                   rst_test_file)

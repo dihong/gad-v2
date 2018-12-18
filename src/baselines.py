@@ -41,6 +41,10 @@ conf = (SparkConf()
 sc = SparkContext(conf=conf)
 
 def save_rst(rst, fname):
+    # create dir
+    path = '/'.join(fname.split('/')[:-1])
+    if os.path.isdir(path) == False:
+        os.system('mkdir -p %s' % path)
     # rst must be [(user, day, score, red)]
     with open(fname, 'w+') as fp:
         fp.write('\n'.join(['%d\t%d\t%.6f\t%d' % (user, day, score, red)
@@ -49,9 +53,11 @@ def save_rst(rst, fname):
 def eval_cr(rst, name=""):
     rst = [(d,s,r) for u,d,s,r in rst]
     rst = sorted(rst, key=operator.itemgetter(0))
+    print('\033[92m')
     for b in config.cr.budgets:
         cr_score = cumulative_recall(rst, b, config.cr.increment)
         print("CR(%s)-%d: %.4f" % (name, b, cr_score))
+    print('\033[0m')
 
 def load_features_txt(datafile):
     with open(datafile) as fp:

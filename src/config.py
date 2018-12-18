@@ -5,12 +5,12 @@ config = edict()
 
 # Spark
 config.spark = edict()
-config.spark.SPARK_MASTER = 'spark://node5:7077'
+config.spark.SPARK_MASTER = 'spark://m65:7077'
 config.spark.cores = 52
 
 # IO directories
 config.io = edict()
-config.io.data_dir = '../r6.2'
+config.io.data_dir = '/data1/dihonggong/datasets/cert/r6.2'
 config.io.outdir = '../results'
 config.io.cache = '../cache'
 
@@ -69,11 +69,8 @@ config.dnn.debug = False
 
 # data
 config.data = edict()
-config.data.all_fixed_txt = '../r6.2/count/features/all_fixed.txt'
-config.data.all_fixed_json = '../r6.2/count/features/all_fixed.json'
-config.data.compact_txt = '../r6.2/count/features/compact10d.txt' # compact.
-config.data.compact_json = '../r6.2/count/features/compact10d.json' # compact.
-config.data.relational_feat = '../extra-features/feat.pkl'
+config.data.compact_txt = '../cache/feat_compact10d.txt' # compact.
+config.data.compact_json = '../feat_compact10d.json'
 config.data.train_ratio = 0.85  # ratio of data used for training.
 
 
