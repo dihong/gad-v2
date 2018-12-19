@@ -11,9 +11,9 @@ The final version of the insider threat detection. It has the following features
 
 ## Prepare data
 
-- Download CERT data [r6.2.tar.bz2](ftp://ftp.sei.cmu.edu/pub/cert-data/r6.2.tar.bz2).
-- Download [answers.tar.bz2](ftp://ftp.sei.cmu.edu/pub/cert-data/answers.tar.bz2).
-- Extract both r6.2.tar.bz2 and answers.tar.bz2, and place extracted answers under r6.2 folder.
+Download CERT data [r6.2.tar.bz2](ftp://ftp.sei.cmu.edu/pub/cert-data/r6.2.tar.bz2).
+Download [answers.tar.bz2](ftp://ftp.sei.cmu.edu/pub/cert-data/answers.tar.bz2).
+Extract both r6.2.tar.bz2 and answers.tar.bz2, and place extracted answers under r6.2 folder.
 
 ## Important Configurations: edit src/config.py
     - SPARK_MASTER: master address of the Spark.
