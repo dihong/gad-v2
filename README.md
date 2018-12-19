@@ -33,3 +33,9 @@ Table 2. The Cumulative Recall (CR) for 1000
 | --------------------- | ---------------- | ----- | ---------- | ---- |
 | No GTM | 37.18 | 34.36  |     32.10     | 36.45   |
 | GTM Enabled | 39.00 | 35.73  |     35.27      | 39.54   |
+
+
+| First Header  | Second Header |
+| ------------- | ------------- |
+| Content Cell  | Content Cell  |
+| Content Cell  | Content Cell  |
