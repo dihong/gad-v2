@@ -22,13 +22,16 @@ The final version of the insider threat detection. It has the following features
     - result: scores of baseline systems.
     - CR scores: printed to the terminal with highted colors.
 ### Results
+
 Table 1. The Cumulative Recall (CR) for 400
+
 |         Algorithms         |   PCA            | SVM | ISO-Forest | DNN |
 | --------------------- | ---------------- | ----- | ---------- | ---- |
 | No GTM | 13.64 | 10.36  |     8.10     | 13.91   |
 | GTM Enabled | 15.00 | 12.00  |     11.27      | 15.54   |
 
 Table 2. The Cumulative Recall (CR) for 1000
+
 |         Algorithms         |   PCA            | SVM | ISO-Forest | DNN |
 | --------------------- | ---------------- | ----- | ---------- | ---- |
 | No GTM | 37.18 | 34.36  |     32.10     | 36.45   |
