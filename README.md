@@ -8,10 +8,13 @@ The final version of the insider threat detection. It has the following features
     - Apache Spark
     - pip install wrapt
     - pip install pgmpy
+
 ## Prepare data
+
 - Download CERT data [r6.2.tar.bz2](ftp://ftp.sei.cmu.edu/pub/cert-data/r6.2.tar.bz2).
 - Download [answers.tar.bz2](ftp://ftp.sei.cmu.edu/pub/cert-data/answers.tar.bz2).
 - Extract both r6.2.tar.bz2 and answers.tar.bz2, and place extracted answers under r6.2 folder.
+
 ## Important Configurations: edit src/config.py
     - SPARK_MASTER: master address of the Spark.
     - config.io.data_dir: root of the extracted r6.2 data.
@@ -38,7 +41,3 @@ Table 2. The Cumulative Recall (CR) for 1000
 | GTM Enabled | 39.00 | 35.73  |     35.27      | 39.54   |
 
 
-| First Header  | Second Header |
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
