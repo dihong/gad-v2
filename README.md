@@ -25,17 +25,19 @@ The final version of the insider threat detection. It has the following features
 ## Outputs
     - cache: all necessary intermediate results.
     - result: scores of baseline systems.
-    - CR scores: printed to the terminal with highted colors.
+    - CR scores: printed to the terminal with highlighted colors.
 ### Results
 
-Table 1. The Cumulative Recall (CR) for 400
+The metric used for evaluation is cumulative recall (CR), with bucket size 25.
+
+Table 1. The CR for 400 (perfect score is 16)
 
 |         Algorithms         |   PCA            | SVM | ISO-Forest | DNN |
 | --------------------- | ---------------- | ----- | ---------- | ---- |
 | No GTM | 13.64 | 10.36  |     8.10     | 13.91   |
 | GTM Enabled | 15.00 | 12.00  |     11.27      | 15.54   |
 
-Table 2. The Cumulative Recall (CR) for 1000
+Table 2. The CR for 1000 (perfect score is 40)
 
 |         Algorithms         |   PCA            | SVM | ISO-Forest | DNN |
 | --------------------- | ---------------- | ----- | ---------- | ---- |
